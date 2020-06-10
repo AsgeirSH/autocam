@@ -179,6 +179,8 @@ void AutoCam(){
 
 void videomix(int cam){
  // send commands to your video mixer
+ Serial.print("#CUT,");
+ Serial.println(cam);
  if(debug){
    Serial.print(" .   -    cut to camera ");
    Serial.print(cam);
