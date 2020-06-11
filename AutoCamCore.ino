@@ -56,9 +56,15 @@ int back = active;   // variable that holds the previous video source, for cut b
 long timeout;        // variable that holds end time of the current round
 boolean cutBack=0;   // switch that is set to 1 if we do a cut back
 
+String inputString = ""; // a String to hold incoming data (config settings)
+bool stringComplete = false; // whether the string is complete
+
 void setup(){
  analogReference(INTERNAL);  // try INTERNAL for Uno and INTERNAL1V1 for Mega at line audio levels
  Serial.begin(115200);       // start the serial port to print debug messages
+     
+ inputString.reserve(32);
+     
  if(debug){
    Serial.println("NRKBeta AutoCam");
    Serial.print("trigger level: ");
@@ -74,9 +80,33 @@ void setup(){
  }
  
 void loop(){
+ ParseConfig();
  AutoCam();      
 }
 
+void ParseConfig() {
+     if (stringComplete) {
+          Serial.print("Input: ");
+          Serial.println(inputString);
+          
+          if(inputString.startsWith("$INPUTS,")) {
+               inputString.remove(0,8);
+               if(inputString.toInt() != 0) {
+                    inputs = inputString.toInt();
+               }
+          }
+          elseif(inputString.startsWith("$TOTAL,")) {
+               inputString.remove(0,7);
+               if(inputString.toInt() != 0) {
+                    total = inputString.toInt();
+               }
+          }
+          // clear the string:
+          inputString = "";
+          stringComplete = false;
+     }
+}
+     
 void AutoCam(){
  
   //////////////////ROUND START//////////////////////
@@ -189,3 +219,12 @@ void videomix(int cam){
  }
 }
 
+void serialEvent() {
+     while (Serial.available()) {
+          char inChar = (char)Serial.read();
+          inputString += inChar;
+          if (inChar == '\n') {
+               stringComplete = true;
+          }
+     }
+}
