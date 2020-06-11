@@ -26,9 +26,9 @@ int level = 200;    // this is the trigger level to exceed from the microphones 
                     // analog levels are in the range of  0-1024, normaly from 0-5v, but this can be altered by altering the analogReference
                     // in the setup section of this sketch. (https://www.arduino.cc/reference/en/language/functions/analog-io/analogreference/)
 
-int inputs =  4;    // number of michrophones to monitor. (Do NOT monitor inputs that ar not connected to an audio source, as they will report random values)
+int inputs =  3;    // number of michrophones to monitor. (Do NOT monitor inputs that ar not connected to an audio source, as they will report random values)
 int camstart = 1;   // input number on the video mixer of the camera corresponding to the first microphone to monitor (the rest must follow in order)
-int total = 5;      // input channel for total camera on video mixer
+int total = 4;      // input channel for total camera on video mixer
 
 int rhythm = 1500;  // round duration i milliseconds (should be in the range of 1000-2000)
 int swing = 50;     // round duration variation in percentage (should be in the range of 10-70)
@@ -65,17 +65,9 @@ void setup(){
      
  inputString.reserve(32);
      
- if(debug){
-   Serial.println("NRKBeta AutoCam");
-   Serial.print("trigger level: ");
-   Serial.print(level);
-   Serial.print("\t rhythm: ");
-   Serial.print(rhythm);
-   Serial.print("ms\t swing: ");
-   Serial.print(swing);
-   Serial.print("%\t Simultaneous: ");
-   Serial.print(simultan);
-   Serial.println("%");
+  if(debug){
+    Serial.println("NRKBeta AutoCam");
+    echoStatus();
   }
  }
  
@@ -95,7 +87,7 @@ void ParseConfig() {
                     inputs = inputString.toInt();
                }
           }
-          elseif(inputString.startsWith("$TOTAL,")) {
+          else if(inputString.startsWith("$TOTAL,")) {
                inputString.remove(0,7);
                if(inputString.toInt() != 0) {
                     total = inputString.toInt();
@@ -104,6 +96,8 @@ void ParseConfig() {
           // clear the string:
           inputString = "";
           stringComplete = false;
+          // Output new settings over serial port to verify
+          echoStatus();
      }
 }
      
@@ -217,6 +211,24 @@ void videomix(int cam){
    Serial.print(" - reason: ");
    Serial.println(reason);
  }
+}
+
+void echoStatus() {
+   Serial.print("Mic inputs: ");
+   Serial.print(inputs);
+   Serial.print("\t Wide shot on camera: ");
+   Serial.println(total);
+   Serial.print("trigger level: ");
+   Serial.print(level);
+   Serial.print("\t rhythm: ");
+   Serial.print(rhythm);
+   Serial.print("ms\t swing: ");
+   Serial.print(swing);
+   Serial.print("%\t Simultaneous: ");
+   Serial.print(simultan);
+   Serial.println("%");
+   
+   
 }
 
 void serialEvent() {
