@@ -21,6 +21,9 @@ Connect your first microphone to A0, the second to A1 and so forth.
 */
 
 #include <avr/wdt.h>
+#include <Wire.h>
+#include <Adafruit_ADS1015.h>
+
 
 //////////////////SETUP START//////////////////////////
 
@@ -37,7 +40,7 @@ int swing = 50;     // round duration variation in percentage (should be in the 
 int simultan = 30;  // simultaneous talk sensitivity before cut to total camera, in percent. 
 
 #define board 53    // number of analog pin 0 on the Arduino use 13 for Uno & Ethernet and 53 for Mega & ADK
-#define debug 0     // 1 to output debug info to the serial monitor, 0 to not
+#define debug 1     // 1 to output debug info to the serial monitor, 0 to not
 
 #define info_logging
 #ifdef info_logging
@@ -50,11 +53,14 @@ int simultan = 30;  // simultaneous talk sensitivity before cut to total camera,
 #endif 
 //////////////////SETUP END//////////////////////////
 
+Adafruit_ADS1115 ads;
 
 int active=total;   // Sets the active camera to the total camera at start
 int last=total;     // Sets the last camera to the total camera at start
 
 int sample;         // Current value read from the analog input
+int16_t adc_sample;
+
 int win;            // The video source of the winner of the most recent round
 int count;          // The number of samples in the most recent round  
 int rounds;         // The number of rounds since the most recent cut
@@ -71,7 +77,13 @@ String inputString = ""; // a String to hold incoming data (config settings)
 bool stringComplete = false; // whether the string is complete
 
 void setup() {
+    // OLD:
     analogReference(INTERNAL);  // try INTERNAL for Uno and INTERNAL1V1 for Mega at line audio levels
+
+    // New ADC:
+    ads.setGain(GAIN_EIGHT);
+    ads.begin();
+
     Serial.begin(115200);       // start the serial port to print debug messages
      
     inputString.reserve(32);
@@ -120,12 +132,46 @@ void ParseConfig() {
                 }
                 echoStatus();
             }
-            else if(inputString.startsWith("LEVEL,")) {
+            else if(inputString.startsWith("TRIGGERLEVEL,")) {
                 inputString.remove(0,7);
                 if(inputString.toInt() != 0) {
                     level = inputString.toInt();
                 }
                 echoStatus();
+            }
+            else if(inputString.startsWith("GAIN,")) {
+                inputString.remove(0,5);
+                // Gain-value is int
+                if(inputString.toInt() != 0) {
+                		int gain = 2;
+                    gain = inputString.toInt();
+                    switch(gain) {
+                    	 case 1:
+                    	 		ads.setGain(GAIN_ONE);
+                    	 break;
+                    	 case 2:
+                    	 		ads.setGain(GAIN_TWO);
+                    	 break;
+                    	 case 4:
+                    	 		ads.setGain(GAIN_FOUR);
+                    	 break;
+                    	 case 8:
+                    	 		ads.setGain(GAIN_EIGHT);
+                    	 break;
+                    	 case 16:
+                    	 		ads.setGain(GAIN_SIXTEEN);
+                    	 break;
+                    	 case 0:
+                    	 default:
+                    	 		ads.setGain(GAIN_TWOTHIRDS);
+                    	 break;
+                    }
+                    ads.begin();
+                    debugln("Changed gain setting on ADC");
+                    info("$ACR,GAIN,");
+                    info(gain);
+                }
+
             }
             else if(inputString.startsWith("RESETCPU")) {
                 // Enable watchdog, then infinite loop to reboot
@@ -164,8 +210,10 @@ void AutoCam(){
   //read analog inputs for duration of round 
   while (timeout > millis()){             // start round
     for (int i = 1; i <=  inputs; i++) {  // loop through audio inputs
-       sample = analogRead(board+i);  
-       if(sample > level){              
+       //sample = analogRead(board+i);  
+       adc_sample = ads.readADC_SingleEnded(i-1); // 0-indexed channels on ADC Board
+       adc_sample = abs(adc_sample);
+       if(adc_sample > level){              
              input[i]=input[i]+1;         // add point if input is over the trigger level
            }    
        }
