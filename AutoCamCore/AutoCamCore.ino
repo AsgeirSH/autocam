@@ -211,11 +211,21 @@ void AutoCam(){
   while (timeout > millis()){             // start round
     for (int i = 1; i <=  inputs; i++) {  // loop through audio inputs
        //sample = analogRead(board+i);  
-       adc_sample = ads.readADC_SingleEnded(i-1); // 0-indexed channels on ADC Board
-       adc_sample = abs(adc_sample);
-       if(adc_sample > level){              
+    		switch(i) {
+    			case 1:
+      			adc_sample = ads.readADC_Differential_0_1(); // 0-indexed channels on ADC Board
+      			break;
+      		case 2:
+      		  adc_sample = ads.readADC_Differential_2_3();
+      		  break;
+      		default:
+      		  adc_sample = 0;
+      			break;
+      	}
+       	adc_sample = abs(adc_sample);
+       	if(adc_sample > level) {              
              input[i]=input[i]+1;         // add point if input is over the trigger level
-           }    
+        }    
        }
      count++;                             // count samples in round
   }
