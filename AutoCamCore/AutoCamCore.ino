@@ -126,14 +126,14 @@ void ParseConfig() {
                 echoStatus();
             }
             else if(inputString.startsWith("TOTAL,")) {
-                inputString.remove(0,7);
+                inputString.remove(0,6);
                 if(inputString.toInt() != 0) {
                     total = inputString.toInt();
                 }
                 echoStatus();
             }
-            else if(inputString.startsWith("TRIGGERLEVEL,")) {
-                inputString.remove(0,7);
+            else if(inputString.startsWith("TRIGGER_LEVEL,")) {
+                inputString.remove(0,14);
                 if(inputString.toInt() != 0) {
                     level = inputString.toInt();
                 }
@@ -311,7 +311,7 @@ void videomix(int cam){
 }
 
 void echoStatus() {
-   Serial.print("$ACR,INPUTS,");
+   Serial.print("$ACR,NUM_INPUTS,");
    Serial.print(inputs);
    Serial.print(",TOTAL,");
    Serial.print(total);
