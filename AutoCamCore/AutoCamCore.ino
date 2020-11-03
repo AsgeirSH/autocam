@@ -30,6 +30,7 @@ Connect your first microphone to A0, the second to A1 and so forth.
 int level = 200;    // This is the trigger level to exceed from the microphones when talking in them, and the most crucial value to get right.
                     // analog levels are in the range of  0-1024, normaly from 0-5v, but this can be altered by altering the analogReference
                     // in the setup section of this sketch. (https://www.arduino.cc/reference/en/language/functions/analog-io/analogreference/)
+int level = 2; // This is the trigger level to exceed from the microphones when talking in them, and the most crucial value to get right.
 
 int inputs =  3;    // Number of michrophones to monitor. (Do NOT monitor inputs that ar not connected to an audio source, as they will report random values)
 int camstart = 1;   // Input number on the video mixer of the camera corresponding to the first microphone to monitor (the rest must follow in order)
@@ -38,6 +39,7 @@ int total = 4;      // Input channel for total camera on video mixer
 int rhythm = 1500;  // round duration i milliseconds (should be in the range of 1000-2000)
 int swing = 50;     // round duration variation in percentage (should be in the range of 10-70)
 int simultan = 30;  // simultaneous talk sensitivity before cut to total camera, in percent. 
+int levelfrequency = 20; // Number of rounds before reporting current mic levels
 
 #define board 53    // number of analog pin 0 on the Arduino use 13 for Uno & Ethernet and 53 for Mega & ADK
 #define debug 1     // 1 to output debug info to the serial monitor, 0 to not
@@ -87,11 +89,10 @@ void setup() {
     Serial.begin(115200);       // start the serial port to print debug messages
      
     inputString.reserve(32);
-    
-    info("");
-    info("===============================");
-    info("NRKBeta AutoCam - modded by ASH");
-    info("");
+
+    Serial.print("$ACR.init|");
+    Serial.print("NRKBeta AutoCam - modded by ASH");
+    Serial.println();
     echoStatus();
 }
  
@@ -132,9 +133,9 @@ void ParseConfig() {
                 }
                 echoStatus();
             }
-            else if(inputString.startsWith("TRIGGER_LEVEL,")) {
                 inputString.remove(0,14);
                 if(inputString.toInt() != 0) {
+            else if (inputString.startsWith("THRESHOLD,"))
                     level = inputString.toInt();
                 }
                 echoStatus();
@@ -142,8 +143,8 @@ void ParseConfig() {
             else if(inputString.startsWith("GAIN,")) {
                 inputString.remove(0,5);
                 // Gain-value is int
-                if(inputString.toInt() != 0) {
-                		int gain = 2;
+                if (inputString.toInt() != 0)
+                {
                     gain = inputString.toInt();
                     switch(gain) {
                     	 case 1:
@@ -246,6 +247,19 @@ void AutoCam(){
   //////////////////ROUND END////////////////////
    
   /////////ACT BASED ON RESULTS /////////////////
+        if( count % levelfrequency == 0 ) {
+            Serial.print("$ACR.LEVELS");
+            Serial.print("|SAMPLES:");
+            Serial.print(count);
+            for (int i = 1; i <= inputs; i++)
+            {
+                Serial.print("|INP");
+                Serial.print(i);
+                Serial.print(":");
+                Serial.print(input[i]);
+            }
+            Serial.println("");
+        }
     active = total;      // default camera is total
     multi= 0;            // reset simultaneous counter
     win=0;               // reset winner
@@ -308,36 +322,38 @@ void AutoCam(){
     }
 }
 
-void videomix(int cam){
- // send commands to your video mixer
- Serial.print("$ACR,CUT,");
- Serial.println(cam);
- if(debug){
-   Serial.print(" .   -    cut to camera ");
-   Serial.print(cam);
-   Serial.print(" - reason: ");
-   Serial.println(reason);
- }
+void videomix(int cam)
+{
+    // send commands to your video mixer
+    Serial.print("$ACR.CUT|");
+    Serial.print(cam);
+    Serial.print("|REASON:");
+    Serial.print(reason);
+    Serial.println("");
 }
 
-void echoStatus() {
-   Serial.print("$ACR,NUM_INPUTS,");
-   Serial.print(inputs);
-   Serial.print(",TOTAL,");
-   Serial.print(total);
-   Serial.print(",TRIGGER_LEVEL,");
-   Serial.print(level);
-   Serial.print(",RHYTM,");
-   Serial.print(rhythm);
-   Serial.print(",SWING,");
-   Serial.print(swing);
-   Serial.print(",SIMUL,");
-   Serial.print(simultan);
-   Serial.print(",LEVEL,");
-   Serial.print(level);
-   Serial.print(",FIRST_VIDEO_INPUT,");
-   Serial.print(camstart);
-   Serial.println("");
+void echoStatus()
+{
+    Serial.print("$ACR.STATUS");
+    Serial.print("|NUM_INPUTS:");
+    Serial.print(inputs);
+    Serial.print("|TOTAL:");
+    Serial.print(total);
+    Serial.print("|THRESHOLD:");
+    Serial.print(level);
+    Serial.print("|RHYTHM:");
+    Serial.print(rhythm);
+    Serial.print("|SWING:");
+    Serial.print(swing);
+    Serial.print("|SIMUL:");
+    Serial.print(simultan);
+    Serial.print("|LEVEL:");
+    Serial.print(level);
+    Serial.print("|FIRST_VIDEO_INPUT:");
+    Serial.print(camstart);
+    Serial.print("|GAIN:");
+    Serial.print(gain);
+    Serial.println("");
 }
 
 void serialEvent() {
