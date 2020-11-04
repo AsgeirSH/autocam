@@ -81,7 +81,7 @@ void setup() {
     analogReference(INTERNAL);  // try INTERNAL for Uno and INTERNAL1V1 for Mega at line audio levels
 
     // New ADC:
-    ads.setGain(GAIN_EIGHT);
+    ads.setGain(GAIN_16);
     ads.begin();
 
     Serial.begin(115200);       // start the serial port to print debug messages
@@ -126,14 +126,14 @@ void ParseConfig() {
                 echoStatus();
             }
             else if(inputString.startsWith("TOTAL,")) {
-                inputString.remove(0,7);
+                inputString.remove(0,6);
                 if(inputString.toInt() != 0) {
                     total = inputString.toInt();
                 }
                 echoStatus();
             }
-            else if(inputString.startsWith("TRIGGERLEVEL,")) {
-                inputString.remove(0,7);
+            else if(inputString.startsWith("TRIGGER_LEVEL,")) {
+                inputString.remove(0,14);
                 if(inputString.toInt() != 0) {
                     level = inputString.toInt();
                 }
@@ -171,7 +171,6 @@ void ParseConfig() {
                     info("$ACR,GAIN,");
                     info(gain);
                 }
-
             }
             else if(inputString.startsWith("RESETCPU")) {
                 // Enable watchdog, then infinite loop to reboot
@@ -179,8 +178,8 @@ void ParseConfig() {
                 while(1) {};
             }
             else {
-                debugln("String was not empty, but no command found. Looking for next command.");
-                debugln(inputString);
+                //debugln("String was not empty, but no command found. Looking for next command.");
+                //debugln(inputString);
                 int commaPos = inputString.indexOf(',');
                 if(commaPos != -1) {
                     inputString.remove(0,commaPos+1);
@@ -223,6 +222,7 @@ void AutoCam(){
       			break;
       	}
        	adc_sample = abs(adc_sample);
+       	info(adc_sample);
        	if(adc_sample > level) {              
              input[i]=input[i]+1;         // add point if input is over the trigger level
         }    
